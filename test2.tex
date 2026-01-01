@@ -1,0 +1,15 @@
+\documentclass[border=5pt]{standalone}  
+\usepackage[utf8]{inputenc}  
+\usepackage[T1]{fontenc}  
+\usepackage{tikz}  
+\usetikzlibrary{patterns}  
+\usepackage{tkz-tab}  
+\tikzset{h style/.style={pattern=north west lines}}  
+\begin{document}  
+\begin{tikzpicture}  
+\tkzTabSetup[lgt=2,espcl=2,deltacl=0.5]  
+\tkzTabInit{$ / 1 , (x)$ / 1 , (x)$ / 1.5}{$-\infty$, $, $+\infty$}  
+\tkzTabLine{, +, z, -, }  
+\tkzTabVar{-/ , +/ , -/ }  
+\end{tikzpicture}  
+\end{document}  

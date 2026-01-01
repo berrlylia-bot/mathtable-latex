@@ -1,0 +1,21 @@
+# Netlify Configuration
+
+[build]
+  command = "npm run build"
+  publish = "dist"
+  functions = "netlify/functions"
+
+[functions]
+  node_bundler = "esbuild"
+
+# Redirect API calls to Netlify Functions
+[[redirects]]
+  from = "/api/render"
+  to = "/.netlify/functions/render"
+  status = 200
+
+# SPA fallback - serve index.html for client-side routing
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200

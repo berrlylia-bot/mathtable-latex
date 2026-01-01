@@ -77,6 +77,10 @@ export default function PreviewPanel({ tableData, onImageRendered, onRenderingCh
         setLoading(true);
         setError(null);
 
+        // Use AbortController for timeout (30 seconds for production, longer timeout for complex tables)
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 30000);
+
         try {
             const response = await fetch(RENDER_ENDPOINT, {
                 method: 'POST',
@@ -84,9 +88,34 @@ export default function PreviewPanel({ tableData, onImageRendered, onRenderingCh
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({ latex: latexCode }),
+                signal: controller.signal
             });
 
-            const data = await response.json();
+            clearTimeout(timeoutId);
+
+            // Check if response is valid before trying to parse JSON
+            const contentType = response.headers.get('content-type');
+            if (!contentType || !contentType.includes('application/json')) {
+                // Try to get the text content for debugging
+                const textContent = await response.text();
+                console.error('Non-JSON response:', textContent.substring(0, 200));
+                throw new Error('Server returned an invalid response. Please try again.');
+            }
+
+            // Get response text first to handle empty responses
+            const responseText = await response.text();
+            if (!responseText || responseText.trim() === '') {
+                throw new Error('Server returned an empty response. The server may be overloaded, please try again.');
+            }
+
+            // Parse JSON safely
+            let data;
+            try {
+                data = JSON.parse(responseText);
+            } catch (parseError) {
+                console.error('JSON parse error:', parseError, 'Response:', responseText.substring(0, 200));
+                throw new Error('Server returned an invalid response. Please try again.');
+            }
 
             if (!response.ok) {
                 throw new Error(data.details || data.error || 'Failed to render');
@@ -107,8 +136,17 @@ export default function PreviewPanel({ tableData, onImageRendered, onRenderingCh
                 throw new Error(data.details || data.error || 'Render failed');
             }
         } catch (err) {
+            clearTimeout(timeoutId);
             console.error('Render error:', err);
-            setError(err.message);
+
+            // Provide more specific error messages
+            if (err.name === 'AbortError') {
+                setError('Request timed out. The server may be busy, please try again.');
+            } else if (err.message.includes('Failed to fetch') || err.message.includes('NetworkError')) {
+                setError('Network error. Please check your connection and try again.');
+            } else {
+                setError(err.message);
+            }
             setRenderedImage(null);
         } finally {
             setLoading(false);

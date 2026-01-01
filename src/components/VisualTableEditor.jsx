@@ -203,9 +203,10 @@ export default function VisualTableEditor({
                                             {points.length > 2 && (
                                                 <button
                                                     onClick={() => removeColumn(col.index)}
-                                                    className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-all duration-200 flex items-center justify-center text-xs shadow-lg hover:bg-red-600 hover:scale-110"
+                                                    className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center text-xs shadow-md hover:bg-red-600 hover:scale-110 transition-all duration-200 border-2 border-white"
+                                                    title="Remove column"
                                                 >
-                                                    <X size={12} />
+                                                    <X size={14} strokeWidth={3} />
                                                 </button>
                                             )}
                                         </>
@@ -239,9 +240,10 @@ export default function VisualTableEditor({
                                     {expressions.length > 1 && (
                                         <button
                                             onClick={() => removeExpression(exprIndex)}
-                                            className="absolute -left-1.5 top-1/2 -translate-y-1/2 w-5 h-5 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-all duration-200 flex items-center justify-center shadow-lg hover:bg-red-600 hover:scale-110"
+                                            className="absolute -left-2 top-1/2 -translate-y-1/2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center shadow-md hover:bg-red-600 hover:scale-110 transition-all duration-200 border-2 border-white"
+                                            title="Remove expression line"
                                         >
-                                            <X size={12} />
+                                            <X size={14} strokeWidth={3} />
                                         </button>
                                     )}
                                 </td>

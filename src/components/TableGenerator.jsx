@@ -1,51 +1,134 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Settings, ChevronDown, ChevronUp } from 'lucide-react';
 import VisualTableEditor from './VisualTableEditor';
 import PreviewPanel from './PreviewPanel';
 
+// Default configurations for each table type
+const DEFAULT_CONFIGS = {
+    // Sign table example: x, (x-1), x(x-1) with zeros at 0 and 1
+    sign: {
+        variable: 't',
+        points: ['-\\infty', '-1', '4', '+\\infty'],
+        arrows: ['up', 'down', 'up'],
+        values: ['', '', '', ''],
+        variationLeftValues: ['', '', '', ''],
+        variationPointTypes: ['n', 'n', 'n', 'n'],
+        variationFunctionName: 'f(t)',
+        expressions: [
+            {
+                name: '(t+1)',
+                signs: ['-', '+', '+'],
+                pointTypes: ['n', 'z', 't', 'n']
+            },
+            {
+                name: '(t-4)',
+                signs: ['-', '-', '+'],
+                pointTypes: ['n', 't', 'z', 'n']
+            },
+            {
+                name: '(t+1)(t-4)',
+                signs: ['+', '-', '+'],
+                pointTypes: ['n', 'z', 'z', 'n']
+            }
+        ],
+        layoutConfig: { lgt: 2.5, espcl: 2, deltacl: 0.5 }
+    },
+    // Variation table example: f(x) with double bar at 0
+    variation: {
+        variable: 'x',
+        points: ['-\\infty', '0', '1', '+\\infty'],
+        arrows: ['up', 'down', 'up'],
+        values: ['-\\infty', '+\\infty', '1', '+\\infty'],
+        variationLeftValues: ['', '+\\infty', '', ''],
+        variationPointTypes: ['n', 'd', 'n', 'n'],
+        variationFunctionName: 'f(x)',
+        expressions: [
+            {
+                name: 'f(x)',
+                signs: ['+', '-', '+'],
+                pointTypes: ['n', 'n', 'n', 'n']
+            }
+        ],
+        layoutConfig: { lgt: 2.5, espcl: 2, deltacl: 0.5 }
+    },
+    // Both table example: f'(x) sign + f(x) variation with double bar at x=1
+    both: {
+        variable: 'x',
+        points: ['-\\infty', '\\frac{1}{2}', '1', '\\frac{3}{2}', '+\\infty'],
+        arrows: ['up', 'down', 'down', 'up'],
+        values: ['-\\infty', '1', '+\\infty', '3', '+\\infty'],
+        variationLeftValues: ['', '', '-\\infty', '', ''],
+        variationPointTypes: ['n', 'n', 'd', 'n', 'n'],
+        variationFunctionName: 'f(x)',
+        expressions: [
+            {
+                name: "f'(x)",
+                signs: ['+', '-', '-', '+'],
+                pointTypes: ['n', 'z', 'd', 'z', 'n']
+            }
+        ],
+        layoutConfig: { lgt: 2.5, espcl: 2, deltacl: 0.5 }
+    }
+};
+
 /**
  * TableGenerator component
  * Main component with side-by-side visual table editor and preview
+ * Each table type (sign, variation, both) has independent state
  */
 export default function TableGenerator({ tableType, onTableDataChange, onImageRendered, onRenderingChange, refreshTriggerRef }) {
-    // Table configuration state
-    const [variable, setVariable] = useState('x');
-    const [points, setPoints] = useState(['-\\infty', '0', '+\\infty']);
-    const [arrows, setArrows] = useState(['up', 'down']);
-    const [values, setValues] = useState(['', '', '']);
-    // Left values for double bar points (value before the discontinuity)
-    const [variationLeftValues, setVariationLeftValues] = useState(['', '', '']);
-    // Variation row point types ('n' = normal, 'd' = double bar/undefined)
-    const [variationPointTypes, setVariationPointTypes] = useState(['n', 'n', 'n']);
-    // Variation function name (editable)
-    const [variationFunctionName, setVariationFunctionName] = useState('f(x)');
+    // Store separate configurations for each table type
+    const [configs, setConfigs] = useState(() => ({
+        sign: { ...DEFAULT_CONFIGS.sign },
+        variation: { ...DEFAULT_CONFIGS.variation },
+        both: { ...DEFAULT_CONFIGS.both }
+    }));
 
-    // Layout configuration for TikZ-tab
-    const [layoutConfig, setLayoutConfig] = useState({
-        lgt: 2,      // First column width (variable column) in cm
-        espcl: 2,    // Column spacing in cm
-        deltacl: 0.5 // Delta/padding in cm
-    });
     const [showLayoutConfig, setShowLayoutConfig] = useState(false);
 
-    // Expression lines (for sign table)
-    // pointTypes: array of point types for ALL points (including first/last)
-    // 'n' = no line, 'z' = zero, 'd' = undefined, 't' = forbidden
-    const [expressions, setExpressions] = useState([
-        {
-            name: 'f(x)',
-            signs: ['+', '-'],
-            pointTypes: ['n', 'z', 'n'] // one per point
-        }
-    ]);
+    // Get current config based on table type
+    const currentConfig = configs[tableType] || configs.sign;
+
+    // Helper to update current table type's config
+    const updateConfig = (updates) => {
+        setConfigs(prev => ({
+            ...prev,
+            [tableType]: {
+                ...prev[tableType],
+                ...updates
+            }
+        }));
+    };
+
+    // Getters for current config
+    const variable = currentConfig.variable;
+    const points = currentConfig.points;
+    const arrows = currentConfig.arrows;
+    const values = currentConfig.values;
+    const variationLeftValues = currentConfig.variationLeftValues;
+    const variationPointTypes = currentConfig.variationPointTypes;
+    const variationFunctionName = currentConfig.variationFunctionName;
+    const expressions = currentConfig.expressions;
+    const layoutConfig = currentConfig.layoutConfig;
+
+    // Setters that update the current table type's config
+    const setVariable = (v) => updateConfig({ variable: v });
+    const setPoints = (p) => updateConfig({ points: p });
+    const setArrows = (a) => updateConfig({ arrows: a });
+    const setValues = (v) => updateConfig({ values: v });
+    const setVariationLeftValues = (v) => updateConfig({ variationLeftValues: v });
+    const setVariationPointTypes = (v) => updateConfig({ variationPointTypes: v });
+    const setVariationFunctionName = (v) => updateConfig({ variationFunctionName: v });
+    const setExpressions = (e) => updateConfig({ expressions: e });
+    const setLayoutConfig = (l) => updateConfig({ layoutConfig: l });
 
     // Build table data object for generators
-    const tableData = {
+    const tableData = useMemo(() => ({
         variable,
         functionName: expressions[0]?.name || 'f(x)',
         points,
         signs: expressions[0]?.signs || [],
-        pointSigns: expressions[0]?.pointTypes?.slice(1, -1) || [], // interior points for backward compat
+        pointSigns: expressions[0]?.pointTypes?.slice(1, -1) || [],
         arrows,
         values,
         variationLeftValues,
@@ -53,54 +136,48 @@ export default function TableGenerator({ tableType, onTableDataChange, onImageRe
         variationFunctionName,
         expressions,
         tableType,
-        layoutConfig, // Include layout config in table data
-    };
+        layoutConfig,
+    }), [variable, points, arrows, values, variationLeftValues, variationPointTypes, variationFunctionName, expressions, tableType, layoutConfig]);
 
     // Notify parent of table data changes
     useEffect(() => {
         if (onTableDataChange) {
             onTableDataChange(tableData);
         }
-    }, [variable, points, arrows, values, variationLeftValues, variationPointTypes, variationFunctionName, expressions, tableType, layoutConfig]);
+    }, [tableData, onTableDataChange]);
 
     // Handle layout config change
     const handleLayoutChange = (key, value) => {
         const numValue = parseFloat(value) || 0;
-        setLayoutConfig(prev => ({
-            ...prev,
+        setLayoutConfig({
+            ...layoutConfig,
             [key]: numValue
-        }));
+        });
     };
 
     // Handle points change - adjust expression arrays
     const handlePointsChange = (newPoints) => {
-        setPoints(newPoints);
-
         const newIntervalCount = Math.max(0, newPoints.length - 1);
 
         // Adjust arrows
         const newArrows = [...arrows];
         while (newArrows.length < newIntervalCount) newArrows.push('up');
         while (newArrows.length > newIntervalCount) newArrows.pop();
-        setArrows(newArrows);
 
         // Adjust values (right values for double bar)
         const newValues = [...values];
         while (newValues.length < newPoints.length) newValues.push('');
         while (newValues.length > newPoints.length) newValues.pop();
-        setValues(newValues);
 
         // Adjust left values (for double bar points)
         const newLeftValues = [...variationLeftValues];
         while (newLeftValues.length < newPoints.length) newLeftValues.push('');
         while (newLeftValues.length > newPoints.length) newLeftValues.pop();
-        setVariationLeftValues(newLeftValues);
 
         // Adjust variation point types
         const newVariationTypes = [...variationPointTypes];
         while (newVariationTypes.length < newPoints.length) newVariationTypes.push('n');
         while (newVariationTypes.length > newPoints.length) newVariationTypes.pop();
-        setVariationPointTypes(newVariationTypes);
 
         // Adjust each expression's signs and pointTypes
         const newExpressions = expressions.map(expr => {
@@ -114,7 +191,16 @@ export default function TableGenerator({ tableType, onTableDataChange, onImageRe
 
             return { ...expr, signs: newSigns, pointTypes: newPointTypes };
         });
-        setExpressions(newExpressions);
+
+        // Update all at once
+        updateConfig({
+            points: newPoints,
+            arrows: newArrows,
+            values: newValues,
+            variationLeftValues: newLeftValues,
+            variationPointTypes: newVariationTypes,
+            expressions: newExpressions
+        });
     };
 
     // Handle expressions change - ensure proper array sizes

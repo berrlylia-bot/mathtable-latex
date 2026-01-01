@@ -24,7 +24,16 @@ const PDFTOCAIRO = process.env.PDFTOCAIRO_PATH || (process.platform === 'win32'
     : 'pdftocairo');
 
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: '50mb' })); // Increase limit for large LaTeX documents
+
+// Global error handler for JSON parsing errors
+app.use((err, req, res, next) => {
+    if (err instanceof SyntaxError && err.status === 400 && 'body' in err) {
+        console.error('JSON parsing error:', err.message);
+        return res.status(400).json({ error: 'Invalid JSON in request body' });
+    }
+    next(err);
+});
 
 // Serve static files in production
 if (isProduction) {

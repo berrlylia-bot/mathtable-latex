@@ -9,7 +9,7 @@ import './index.css';
 const MIN_SCREEN_WIDTH = 768;
 
 function App() {
-  const [tableType, setTableType] = useState('both');
+  const [tableType, setTableType] = useState('sign');
   const [tableData, setTableData] = useState(null);
   const [renderedImage, setRenderedImage] = useState(null);
   const [isRendering, setIsRendering] = useState(false);

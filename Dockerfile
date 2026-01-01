@@ -1,5 +1,5 @@
-# Build stage
-FROM node:20-alpine AS builder
+# Build stage - Build the React frontend
+FROM node:20-slim AS builder
 
 WORKDIR /app
 
@@ -15,24 +15,23 @@ COPY . .
 # Build the React app
 RUN npm run build
 
-# Production stage
-FROM node:20-alpine
+# Production stage - Full TeX Live with all packages
+FROM node:20-slim
 
 WORKDIR /app
 
-# Install TeX Live and poppler-utils (for pdftocairo)
-# Using Alpine's texlive packages - minimal installation with required packages
-RUN apk add --no-cache \
-    texlive \
-    texlive-xetex \
-    texmf-dist-latexextra \
-    texmf-dist-pictures \
+# Install TeX Live (full) and poppler-utils for PDF to PNG conversion
+# Using Debian's texlive-full to ensure all packages including tikz-tab are available
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    texlive-full \
     poppler-utils \
-    && rm -rf /var/cache/apk/*
+    wget \
+    && rm -rf /var/lib/apt/lists/* \
+    && apt-get clean
 
 # Copy package files and install production dependencies only
 COPY package*.json ./
-RUN npm ci --only=production
+RUN npm ci --omit=dev
 
 # Copy the built frontend from builder stage
 COPY --from=builder /app/dist ./dist
@@ -48,7 +47,7 @@ ENV PORT=3000
 EXPOSE 3000
 
 # Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+HEALTHCHECK --interval=30s --timeout=30s --start-period=120s --retries=3 \
     CMD wget --no-verbose --tries=1 --spider http://localhost:3000/health || exit 1
 
 # Start the server
